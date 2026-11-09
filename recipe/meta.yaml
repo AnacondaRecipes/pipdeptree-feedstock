@@ -12,7 +12,7 @@ source:
 build:
   number: 0
   # upstream requires-python >=3.10; 4.x ships a Rust extension (noarch no longer applies)
-  skip: true  # [py<311]
+  skip: true  # [py<310]
   script:
     # pyo3 resolves the interpreter from CONDA_PREFIX, which conda-build points at the build
     # env (no python there); pin it to the host interpreter
@@ -29,12 +29,13 @@ requirements:
     - {{ compiler('c') }}
     - {{ compiler('rust') }}
     - cargo-bundle-licenses
-    - ninja-base
   host:
     - python
     - pip
+    # upstream [build-system] requires: meson>=1.11.2, meson-python>=0.20, ninja>=1.13
     - meson >=1.11.2
     - meson-python >=0.20
+    - ninja-base >=1.13  # analint: host_section_needs_exact_pinnings  # meson-python build tool, not a linked library
   run:
     - python
     # upstream dependencies (used by the `from-index` subcommand)
