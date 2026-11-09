@@ -38,7 +38,6 @@ requirements:
     - ninja-base >=1.13  # analint: host_section_needs_exact_pinnings  # meson-python build tool, not a linked library
   run:
     - python
-    # upstream dependencies (used by the `from-index` subcommand)
     - nab-index >=0.0.11
     - nab-python >=0.0.11
 
