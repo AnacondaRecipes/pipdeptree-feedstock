@@ -14,6 +14,10 @@ build:
   # upstream requires-python >=3.10; 4.x ships a Rust extension (noarch no longer applies)
   skip: true  # [py<311]
   script:
+    # pyo3 resolves the interpreter from CONDA_PREFIX, which conda-build points at the build
+    # env (no python there); pin it to the host interpreter
+    - export PYO3_PYTHON="${PREFIX}/bin/python"  # [unix]
+    - set "PYO3_PYTHON=%PREFIX%\python.exe"      # [win]
     - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
     - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
   entry_points:
