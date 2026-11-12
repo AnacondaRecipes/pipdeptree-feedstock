@@ -51,6 +51,10 @@ test:
   requires:
     - pip
     - pytest >=9.1.1
+    # graphviz provides the `dot` binary that the CLI shells out to in the graph-output tests
+    - graphviz
+    # pluggy 1.7.0 dropped the `testing` extra (coverage) that test_render_explicit_extras asserts on
+    - pluggy <1.7
   commands:
     - pip check
     - pipdeptree --help
