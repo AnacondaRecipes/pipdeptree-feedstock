@@ -55,6 +55,7 @@ test:
     - graphviz
     # pluggy 1.7.0 dropped the `testing` extra (coverage) that test_render_explicit_extras asserts on
     - pluggy <1.7
+    - pytest-cov >=7.1
   commands:
     - pip check
     - pipdeptree --help
