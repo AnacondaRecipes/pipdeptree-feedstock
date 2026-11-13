@@ -1,55 +1,89 @@
 {% set name = "pipdeptree" %}
-{% set version = "2.3.3" %}
+{% set version = "4.2.1" %}
 
 package:
-  name: {{ name|lower }}
+  name: {{ name }}
   version: {{ version }}
 
 source:
-  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
-  sha256: 9d666f77ff1b9528d01b3d98594096484f56de70d752abe22f13e681be239bd8
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: c6c5d8035c191adfb2b673c57c921288159dbad553e0184229671ed0d086450c
 
 build:
-  noarch: python
   number: 0
-  script: {{ PYTHON }} -m pip install . -vv
+  # upstream requires-python >=3.10; 4.x ships a Rust extension (noarch no longer applies)
+  skip: true  # [py<310]
+  script:
+    # pyo3 resolves the interpreter from CONDA_PREFIX, which conda-build points at the build
+    # env (no python there); pin it to the host interpreter
+    - export PYO3_PYTHON="${PREFIX}/bin/python"  # [unix]
+    - set "PYO3_PYTHON=%PREFIX%\python.exe"      # [win]
+    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
   entry_points:
-    - pipdeptree = pipdeptree:main
+    - pipdeptree = pipdeptree._runner:main
 
 requirements:
+  build:
+    - {{ stdlib('c') }}
+    - {{ compiler('c') }}
+    - {{ compiler('rust') }}
+    - cargo-bundle-licenses
   host:
-    - python >=3.6
+    - python
     - pip
-    - hatchling
-    - hatch-vcs
+    # upstream [build-system] requires: meson>=1.11.2, meson-python>=0.20, ninja>=1.13
+    - meson >=1.11.2
+    - meson-python >=0.20
+    - ninja-base >=1.13  # analint: host_section_needs_exact_pinnings  # meson-python build tool, not a linked library
   run:
-    - python >=3.6
-    - pip
+    - python
+    - nab-index >=0.0.11
+    - nab-python >=0.0.11
 
 test:
+  source_files:
+    - docs
+    - tests
+    - pyproject.toml
   imports:
     - pipdeptree
+  requires:
+    - pip
+    - pytest >=9.1.1
+    # graphviz provides the `dot` binary that the CLI shells out to in the graph-output tests
+    - graphviz
+    # pluggy 1.7.0 dropped the `testing` extra (coverage) that test_render_explicit_extras asserts on
+    - pluggy <1.7
+    - pytest-cov >=7.1
   commands:
-    - pipdeptree
+    - pip check
+    - pipdeptree --help
+    - pipdeptree --version
+    - pytest -vv tests
 
 about:
-  home: http://github.com/naiquevin/pipdeptree
+  home: https://github.com/tox-dev/pipdeptree
   license: MIT
   license_family: MIT
-  license_file: LICENSE
-  summary: Displays installed python packages in form of a dependency tree.
+  license_file:
+    - LICENSE
+    # collected from Cargo dependencies during the build
+    - THIRDPARTY.yml
+  summary: Command line utility to show dependency tree of packages.
   description: |
-    pipdeptree is a command line utility for displaying the
-    installed python packages in form of a dependency tree. It works for packages
-    installed globally on a machine as well as in a virtualenv. Since pip freeze
-    shows all dependencies as a flat list, finding out which are the top level
-    packages and which packages do they depend on requires some effort. It can also
-    be tedious to resolve conflicting dependencies because pip doesn't yet have
-    true dependency resolution (more on this later). This utility tries to solve
-    this problem.
-  doc_url: https://github.com/naiquevin/pipdeptree
-  dev_url: http://github.com/naiquevin/pipdeptree
+    pipdeptree is a command line utility for displaying the installed python packages
+    in form of a dependency tree. It works for packages installed globally on a machine
+    as well as in a virtualenv. Since pip freeze shows all dependencies as a flat list,
+    finding out which are the top level packages and which packages do they depend on
+    requires some effort. It can also be tedious to resolve conflicting dependencies
+    because pip doesn't yet have true dependency resolution (more on this later).
+    This utility tries to solve this problem.
+  doc_url: https://pipdeptree.readthedocs.io
+  dev_url: https://github.com/tox-dev/pipdeptree
 
 extra:
   recipe-maintainers:
     - cdiener
+    - dlqqq
+    - rxm7706
